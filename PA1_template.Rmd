@@ -5,50 +5,75 @@
 ## Loading and preprocessing the data
 
 ```{r loading_data}
+
 input <- read.table("activity.csv",sep=",",header=T)
 head(input)
 table(input$date)
+intervals <- unique(input$interval)
+days <- unique(input$date)
+
 ```
 
 ## What is mean total number of steps taken per day?
 ``` {r mean_total_steps}
+
 hist(input$steps,col="red",xlab="Number of steps",main="Histogram of steps taken")
 require(plyr)
 results <- ddply(input,"date",function(x) {
-	data.frame(mean.steps=mean(x$steps,na.rm=T),median.steps=median(x$steps,na.rm=T))
+	data.frame(mean.steps=mean(x$steps,na.rm=F),median.steps=median(x$steps,na.rm=F))
 })
 head(results)
+
 ```
 
 ## What is the average daily activity pattern?
 ``` {r average_daily_activity }
+
 out <- ddply(input,"interval",function(x) {
 	data.frame(mean.steps=mean(x$steps,na.rm=T))
 })
 head(out)
-plot(out$interval,out$mean.steps,type="l")
+plot(out$interval,out$mean.steps,type="l",xlab="5 mt interval",ylab="Average # of steps (over all days)")
 subset(out,mean.steps==max(mean.steps))
 
 ```
 
 ## Imputing missing values
 ``` {r missing_values}
-sum(!complete.cases(input))
-#library(reshape2)
-#input2 <- dcast(input,interval~date,value.var="steps")
-#rownames(input2) <- input2$interval
-#input2 <-subset(input2,select=-interval)
-#head(input2)
-#input2.imputed <- data.frame(impute.knn(as.matrix(input2),k=20,colmax=1)$data,stringsAsFactors=F)
-input2 <- head(merge(input,out,by="interval"),n=20)
-for (i in 1:dim(input2)[1]) {
-	input2[i,"steps"] = ifelse(is.na(input2[i,"steps"]),input2[i,"mean.steps"],input2[i,"steps"])
-}
-input3 <- data.frame(t(apply(as.matrix(input2),1,function(x) {
+
+sum(!complete.cases(input))   ### total number of rows with NAs = 2304 
+input2 <- merge(input,out,by="interval")
+### fill in NAs with mean for that 5 mt interval
+input3 <- subset(data.frame(t(apply(as.matrix(input2),1,function(x) {
 	x[2]=ifelse(is.na(x[2]),x[4],x[2])
 	return(x)
-})),check.names=F)
+})),check.names=F),select=c(steps,date,interval))
+input3$steps <- as.integer(input3$steps); #input3$interval <- as.integer(input3$interval)
+### check to make sure there are no NAs
+sum(!complete.cases(input3))
+hist(input3$steps,col="red",xlab="Number of steps",main="Histogram of steps taken")
+results2 <- ddply(input3,"date",function(x) {
+	data.frame(mean.steps=mean(x$steps,na.rm=F),median.steps=median(x$steps,na.rm=F))
+})
+head(results2)
 
 ```
 
 ## Are there differences in activity patterns between weekdays and weekends?
+``` {r weekdays_weekends}
+
+input3$weekday <- weekdays(as.Date(input3$date))
+input3$is.weekday <- ifelse(grepl("^s",ignore.case=T,input3$weekday),"weekend","weekday")
+out2 <- ddply(input3,c("interval","is.weekday"),function(x) {
+	data.frame(mean.steps=mean(x$steps,na.rm=T))
+})
+head(out2)
+require(lattice)
+#par(xaxt="n")
+xyplot(mean.steps~interval|is.weekday,data=out2,layout=c(1,2),type="l",ylab="Average number of steps",xlab="Interval")
+#axis(1,xaxp=c(0,500,1000,1500,2000))
+
+```
+
+
+

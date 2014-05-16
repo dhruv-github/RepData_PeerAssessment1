@@ -6,6 +6,7 @@
 
 
 ```r
+
 input <- read.table("activity.csv", sep = ",", header = T)
 head(input)
 ```
@@ -50,10 +51,16 @@ table(input$date)
 ##        288
 ```
 
+```r
+intervals <- unique(input$interval)
+days <- unique(input$date)
+```
+
 
 ## What is mean total number of steps taken per day?
 
 ```r
+
 hist(input$steps, col = "red", xlab = "Number of steps", main = "Histogram of steps taken")
 ```
 
@@ -61,16 +68,23 @@ hist(input$steps, col = "red", xlab = "Number of steps", main = "Histogram of st
 
 ```r
 require(plyr)
+```
+
+```
+## Loading required package: plyr
+```
+
+```r
 results <- ddply(input, "date", function(x) {
-    data.frame(mean.steps = mean(x$steps, na.rm = T), median.steps = median(x$steps, 
-        na.rm = T))
+    data.frame(mean.steps = mean(x$steps, na.rm = F), median.steps = median(x$steps, 
+        na.rm = F))
 })
 head(results)
 ```
 
 ```
 ##         date mean.steps median.steps
-## 1 2012-10-01        NaN           NA
+## 1 2012-10-01         NA           NA
 ## 2 2012-10-02     0.4375            0
 ## 3 2012-10-03    39.4167            0
 ## 4 2012-10-04    42.0694            0
@@ -82,6 +96,7 @@ head(results)
 ## What is the average daily activity pattern?
 
 ```r
+
 out <- ddply(input, "interval", function(x) {
     data.frame(mean.steps = mean(x$steps, na.rm = T))
 })
@@ -99,7 +114,7 @@ head(out)
 ```
 
 ```r
-plot(out$interval, out$mean.steps, type = "l")
+plot(out$interval, out$mean.steps, type = "l", xlab = "5 mt interval", ylab = "Average # of steps (over all days)")
 ```
 
 ![plot of chunk average_daily_activity](figure/average_daily_activity.png) 
@@ -117,7 +132,8 @@ subset(out, mean.steps == max(mean.steps))
 ## Imputing missing values
 
 ```r
-sum(!complete.cases(input))
+
+sum(!complete.cases(input))   ### total number of rows with NAs = 2304 
 ```
 
 ```
@@ -125,20 +141,88 @@ sum(!complete.cases(input))
 ```
 
 ```r
-# library(reshape2) input2 <- dcast(input,interval~date,value.var='steps')
-# rownames(input2) <- input2$interval input2
-# <-subset(input2,select=-interval) head(input2) input2.imputed <-
-# data.frame(impute.knn(as.matrix(input2),k=20,colmax=1)$data,stringsAsFactors=F)
-input2 <- head(merge(input, out, by = "interval"), n = 20)
-for (i in 1:dim(input2)[1]) {
-    input2[i, "steps"] = ifelse(is.na(input2[i, "steps"]), input2[i, "mean.steps"], 
-        input2[i, "steps"])
-}
-input3 <- data.frame(t(apply(as.matrix(input2), 1, function(x) {
-    x[2] = ifelse(is.na(x[2]), x[4], x[2])
-    return(x)
-})), check.names = F)
+input2 <- merge(input,out,by="interval")
+### fill in NAs with mean for that 5 mt interval
+input3 <- subset(data.frame(t(apply(as.matrix(input2),1,function(x) {
+	x[2]=ifelse(is.na(x[2]),x[4],x[2])
+	return(x)
+})),check.names=F),select=c(steps,date,interval))
+input3$steps <- as.integer(input3$steps); #input3$interval <- as.integer(input3$interval)
+### check to make sure there are no NAs
+sum(!complete.cases(input3))
+```
+
+```
+## [1] 0
+```
+
+```r
+hist(input3$steps,col="red",xlab="Number of steps",main="Histogram of steps taken")
+```
+
+![plot of chunk missing_values](figure/missing_values.png) 
+
+```r
+results2 <- ddply(input3,"date",function(x) {
+	data.frame(mean.steps=mean(x$steps,na.rm=F),median.steps=median(x$steps,na.rm=F))
+})
+head(results2)
+```
+
+```
+##         date mean.steps median.steps
+## 1 2012-10-01     151.82          145
+## 2 2012-10-02       2.50            1
+## 3 2012-10-03      87.15            1
+## 4 2012-10-04      99.15            1
+## 5 2012-10-05      95.83            1
+## 6 2012-10-06     117.51            1
 ```
 
 
 ## Are there differences in activity patterns between weekdays and weekends?
+
+```r
+
+input3$weekday <- weekdays(as.Date(input3$date))
+input3$is.weekday <- ifelse(grepl("^s", ignore.case = T, input3$weekday), "weekend", 
+    "weekday")
+out2 <- ddply(input3, c("interval", "is.weekday"), function(x) {
+    data.frame(mean.steps = mean(x$steps, na.rm = T))
+})
+head(out2)
+```
+
+```
+##   interval is.weekday mean.steps
+## 1        0    weekday     15.600
+## 2        0    weekend      5.750
+## 3        5    weekday      4.600
+## 4        5    weekend      2.500
+## 5       10    weekday      2.956
+## 6       10    weekend      1.500
+```
+
+```r
+require(lattice)
+```
+
+```
+## Loading required package: lattice
+```
+
+```r
+# par(xaxt='n')
+xyplot(mean.steps ~ interval | is.weekday, data = out2, layout = c(1, 2), type = "l", 
+    ylab = "Average number of steps", xlab = "Interval")
+```
+
+![plot of chunk weekdays_weekends](figure/weekdays_weekends.png) 
+
+```r
+# axis(1,xaxp=c(0,500,1000,1500,2000))
+```
+
+
+
+
