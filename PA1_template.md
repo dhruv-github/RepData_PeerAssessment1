@@ -185,8 +185,8 @@ head(results2)
 ```r
 
 input3$weekday <- weekdays(as.Date(input3$date))
-input3$is.weekday <- ifelse(grepl("^s", ignore.case = T, input3$weekday), "weekend", 
-    "weekday")
+input3$is.weekday <- factor(ifelse(grepl("^s", ignore.case = T, input3$weekday), 
+    "weekend", "weekday"), levels = c("weekday", "weekend"))
 out2 <- ddply(input3, c("interval", "is.weekday"), function(x) {
     data.frame(mean.steps = mean(x$steps, na.rm = T))
 })
@@ -212,6 +212,7 @@ require(lattice)
 ```
 
 ```r
+out2$interval <- as.numeric(as.character(out2$interval))
 # par(xaxt='n')
 xyplot(mean.steps ~ interval | is.weekday, data = out2, layout = c(1, 2), type = "l", 
     ylab = "Average number of steps", xlab = "Interval")
