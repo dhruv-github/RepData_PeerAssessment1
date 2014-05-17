@@ -35,6 +35,7 @@ out <- ddply(input,"interval",function(x) {
 head(out)
 plot(out$interval,out$mean.steps,type="l",xlab="5 mt interval",ylab="Average # of steps (over all days)")
 subset(out,mean.steps==max(mean.steps))
+### the 104th 5 minute interval contains the max # steps, averaged over days
 
 ```
 
@@ -43,15 +44,19 @@ subset(out,mean.steps==max(mean.steps))
 
 sum(!complete.cases(input))   ### total number of rows with NAs = 2304 
 input2 <- merge(input,out,by="interval")
+head(input2)
 ### fill in NAs with mean for that 5 mt interval
 input3 <- subset(data.frame(t(apply(as.matrix(input2),1,function(x) {
 	x[2]=ifelse(is.na(x[2]),x[4],x[2])
 	return(x)
 })),check.names=F),select=c(steps,date,interval))
-input3$steps <- as.integer(input3$steps); #input3$interval <- as.integer(input3$interval)
+input3$steps <-  as.numeric(levels(input3$steps))[input3$steps] #as.integer(input3$steps); 
+### the new dataset with missing data filled in !
+head(input3)   
 ### check to make sure there are no NAs
 sum(!complete.cases(input3))
 hist(input3$steps,col="red",xlab="Number of steps",main="Histogram of steps taken")
+### The frequency in the first bin in the histogram is more, when missing data is filled in
 results2 <- ddply(input3,"date",function(x) {
 	data.frame(mean.steps=mean(x$steps,na.rm=F),median.steps=median(x$steps,na.rm=F))
 })
@@ -69,7 +74,7 @@ out2 <- ddply(input3,c("interval","is.weekday"),function(x) {
 })
 head(out2)
 require(lattice)
-out2$interval <- as.numeric(as.character(out2$interval))
+out2$interval <- as.numeric(levels(out2$interval))[out2$interval]  #as.numeric(as.character(out2$interval))
 xyplot(mean.steps~interval|is.weekday,data=out2,layout=c(1,2),type="l",ylab="Average number of steps",xlab="Interval")
 
 ```

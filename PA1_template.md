@@ -128,12 +128,16 @@ subset(out, mean.steps == max(mean.steps))
 ## 104      835      206.2
 ```
 
+```r
+### the 104th 5 minute interval contains the max # steps, averaged over days
+```
+
 
 ## Imputing missing values
 
 ```r
 
-sum(!complete.cases(input))   ### total number of rows with NAs = 2304 
+sum(!complete.cases(input))  ### total number of rows with NAs = 2304 
 ```
 
 ```
@@ -141,13 +145,42 @@ sum(!complete.cases(input))   ### total number of rows with NAs = 2304
 ```
 
 ```r
-input2 <- merge(input,out,by="interval")
+input2 <- merge(input, out, by = "interval")
+head(input2)
+```
+
+```
+##   interval steps       date mean.steps
+## 1        0    NA 2012-10-01      1.717
+## 2        0     0 2012-11-23      1.717
+## 3        0     0 2012-10-28      1.717
+## 4        0     0 2012-11-06      1.717
+## 5        0     0 2012-11-24      1.717
+## 6        0     0 2012-11-15      1.717
+```
+
+```r
 ### fill in NAs with mean for that 5 mt interval
-input3 <- subset(data.frame(t(apply(as.matrix(input2),1,function(x) {
-	x[2]=ifelse(is.na(x[2]),x[4],x[2])
-	return(x)
-})),check.names=F),select=c(steps,date,interval))
-input3$steps <- as.integer(input3$steps); #input3$interval <- as.integer(input3$interval)
+input3 <- subset(data.frame(t(apply(as.matrix(input2), 1, function(x) {
+    x[2] = ifelse(is.na(x[2]), x[4], x[2])
+    return(x)
+})), check.names = F), select = c(steps, date, interval))
+input3$steps <- as.numeric(levels(input3$steps))[input3$steps]  #as.integer(input3$steps); 
+### the new dataset with missing data filled in !
+head(input3)
+```
+
+```
+##   steps       date interval
+## 1 1.717 2012-10-01        0
+## 2 0.000 2012-11-23        0
+## 3 0.000 2012-10-28        0
+## 4 0.000 2012-11-06        0
+## 5 0.000 2012-11-24        0
+## 6 0.000 2012-11-15        0
+```
+
+```r
 ### check to make sure there are no NAs
 sum(!complete.cases(input3))
 ```
@@ -157,26 +190,29 @@ sum(!complete.cases(input3))
 ```
 
 ```r
-hist(input3$steps,col="red",xlab="Number of steps",main="Histogram of steps taken")
+hist(input3$steps, col = "red", xlab = "Number of steps", main = "Histogram of steps taken")
 ```
 
 ![plot of chunk missing_values](figure/missing_values.png) 
 
 ```r
-results2 <- ddply(input3,"date",function(x) {
-	data.frame(mean.steps=mean(x$steps,na.rm=F),median.steps=median(x$steps,na.rm=F))
+### The frequency in the first bin in the histogram is more, when missing data
+### is filled in
+results2 <- ddply(input3, "date", function(x) {
+    data.frame(mean.steps = mean(x$steps, na.rm = F), median.steps = median(x$steps, 
+        na.rm = F))
 })
 head(results2)
 ```
 
 ```
 ##         date mean.steps median.steps
-## 1 2012-10-01     151.82          145
-## 2 2012-10-02       2.50            1
-## 3 2012-10-03      87.15            1
-## 4 2012-10-04      99.15            1
-## 5 2012-10-05      95.83            1
-## 6 2012-10-06     117.51            1
+## 1 2012-10-01    37.3826        34.11
+## 2 2012-10-02     0.4375         0.00
+## 3 2012-10-03    39.4167         0.00
+## 4 2012-10-04    42.0694         0.00
+## 5 2012-10-05    46.1597         0.00
+## 6 2012-10-06    53.5417         0.00
 ```
 
 
@@ -195,12 +231,12 @@ head(out2)
 
 ```
 ##   interval is.weekday mean.steps
-## 1        0    weekday     15.600
-## 2        0    weekend      5.750
-## 3        5    weekday      4.600
-## 4        5    weekend      2.500
-## 5       10    weekday      2.956
-## 6       10    weekend      1.500
+## 1        0    weekday    2.25115
+## 2        0    weekend    0.21462
+## 3        5    weekday    0.44528
+## 4        5    weekend    0.04245
+## 5       10    weekday    0.17317
+## 6       10    weekend    0.01651
 ```
 
 ```r
@@ -212,17 +248,12 @@ require(lattice)
 ```
 
 ```r
-out2$interval <- as.numeric(as.character(out2$interval))
-# par(xaxt='n')
+out2$interval <- as.numeric(levels(out2$interval))[out2$interval]  #as.numeric(as.character(out2$interval))
 xyplot(mean.steps ~ interval | is.weekday, data = out2, layout = c(1, 2), type = "l", 
     ylab = "Average number of steps", xlab = "Interval")
 ```
 
 ![plot of chunk weekdays_weekends](figure/weekdays_weekends.png) 
-
-```r
-# axis(1,xaxp=c(0,500,1000,1500,2000))
-```
 
 
 
