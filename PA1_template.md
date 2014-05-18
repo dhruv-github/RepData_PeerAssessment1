@@ -165,7 +165,7 @@ input3 <- subset(data.frame(t(apply(as.matrix(input2), 1, function(x) {
     x[2] = ifelse(is.na(x[2]), x[4], x[2])
     return(x)
 })), check.names = F), select = c(steps, date, interval))
-input3$steps <- as.numeric(levels(input3$steps))[input3$steps]  #as.integer(input3$steps); 
+input3$steps <- as.numeric(levels(input3$steps))[input3$steps]
 ### the new dataset with missing data filled in !
 head(input3)
 ```
@@ -196,8 +196,8 @@ hist(input3$steps, col = "red", xlab = "Number of steps", main = "Histogram of s
 ![plot of chunk missing_values](figure/missing_values.png) 
 
 ```r
-### The frequency in the first bin in the histogram is more, when missing data
-### is filled in
+### Yes, the values differ from the first part of the assignment The frequency
+### in the first bin in the histogram is more, when missing data is filled in
 results2 <- ddply(input3, "date", function(x) {
     data.frame(mean.steps = mean(x$steps, na.rm = F), median.steps = median(x$steps, 
         na.rm = F))
@@ -248,7 +248,7 @@ require(lattice)
 ```
 
 ```r
-out2$interval <- as.numeric(levels(out2$interval))[out2$interval]  #as.numeric(as.character(out2$interval))
+out2$interval <- as.numeric(levels(out2$interval))[out2$interval]  # OR  as.numeric(as.character(out2$interval))
 xyplot(mean.steps ~ interval | is.weekday, data = out2, layout = c(1, 2), type = "l", 
     ylab = "Average number of steps", xlab = "Interval")
 ```
